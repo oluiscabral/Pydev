@@ -653,11 +653,12 @@ public class SourceModule extends AbstractModule implements ISourceModule {
                     TokensList completions = getCompletionsForBase(initialState, manager, c, j);
                     modToks.addAll(completions);
                 }
+                modToks.setLookingFor(LookingFor.LOOKING_FOR_INSTANCED_VARIABLE);
             }
         } catch (CompletionRecursionException e) {
             // let's return what we have so far...
+            modToks.setLookingFor(initialState.getLookingFor());
         }
-        modToks.setLookingFor(initialState.getLookingFor());
         return modToks;
     }
 
