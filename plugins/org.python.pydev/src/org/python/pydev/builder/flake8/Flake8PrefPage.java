@@ -3,10 +3,8 @@ package org.python.pydev.builder.flake8;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.eclipse.core.resources.IMarker;
 import org.eclipse.jface.preference.BooleanFieldEditor;
 import org.eclipse.jface.preference.FieldEditor;
-import org.eclipse.jface.preference.FieldEditorPreferencePage;
 import org.eclipse.jface.preference.FileFieldEditor;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -16,25 +14,26 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.IWorkbench;
 import org.eclipse.ui.IWorkbenchPreferencePage;
 import org.python.pydev.plugin.PydevPlugin;
+import org.python.pydev.shared_core.string.WrapAndCaseUtils;
+import org.python.pydev.shared_ui.field_editors.JsonFieldEditor;
 import org.python.pydev.shared_ui.field_editors.RadioGroupFieldEditor;
+import org.python.pydev.shared_ui.field_editors.ScopedFieldEditorPreferencePage;
+import org.python.pydev.shared_ui.field_editors.ScopedPreferencesFieldEditor;
 import org.python.pydev.utils.CustomizableFieldEditor;
 
+import com.python.pydev.analysis.PyAnalysisScopedPreferences;
+import com.python.pydev.analysis.flake8.Flake8CodesConfigHandler;
 import com.python.pydev.analysis.flake8.Flake8Preferences;
 
-public class Flake8PrefPage extends FieldEditorPreferencePage implements IWorkbenchPreferencePage {
+public class Flake8PrefPage extends ScopedFieldEditorPreferencePage implements IWorkbenchPreferencePage {
 
     private Composite parent;
     private RadioGroupFieldEditor searchFlake8Location;
     private FileFieldEditor fileField;
     private List<FieldEditor> fields = new ArrayList<FieldEditor>(5);
+    private JsonFieldEditor jsonFieldEditor;
 
     public static final int COLS = 4;
-
-    public static final String[][] LABEL_AND_VALUE = new String[][] {
-            { "Error", String.valueOf(IMarker.SEVERITY_ERROR) },
-            { "Warning", String.valueOf(IMarker.SEVERITY_WARNING) },
-            { "Info", String.valueOf(IMarker.SEVERITY_INFO) },
-            { "Ignore", String.valueOf(Flake8Preferences.SEVERITY_IGNORE) }, };
 
     public static final String[][] SEARCH_FLAKE8_LOCATION_OPTIONS = new String[][] {
             { "Search in interpreter", Flake8Preferences.LOCATION_SEARCH },
@@ -42,7 +41,7 @@ public class Flake8PrefPage extends FieldEditorPreferencePage implements IWorkbe
     };
 
     public Flake8PrefPage() {
-        super(GRID);
+        super(FLAT);
         setPreferenceStore(PydevPlugin.getDefault().getPreferenceStore());
         setDescription("Flake8");
     }
@@ -84,23 +83,18 @@ public class Flake8PrefPage extends FieldEditorPreferencePage implements IWorkbe
                 true, parent);
         addField(fileField);
 
-        addField(new RadioGroupFieldEditor(Flake8Preferences.FLAKE8_E_SEVERITY, "E Severity", COLS, LABEL_AND_VALUE,
-                parent, true));
-
-        addField(new RadioGroupFieldEditor(Flake8Preferences.FLAKE8_F_SEVERITY, "F Severity", COLS,
-                LABEL_AND_VALUE,
-                parent, true));
-
-        addField(new RadioGroupFieldEditor(Flake8Preferences.FLAKE8_W_SEVERITY, "W Severity", COLS,
-                LABEL_AND_VALUE, parent, true));
-
-        addField(new RadioGroupFieldEditor(Flake8Preferences.FLAKE8_C_SEVERITY, "C Severity", COLS,
-                LABEL_AND_VALUE, parent, true));
+        jsonFieldEditor = new JsonFieldEditor(Flake8Preferences.FLAKE8_CODES_CONFIG,
+                WrapAndCaseUtils.wrap("Flake 8 severity map (unmatched entries will be marked as \"warning\")", 90),
+                parent);
+        jsonFieldEditor.setAdditionalJsonValidation((json) -> Flake8CodesConfigHandler.checkJsonFormat(json));
+        addField(jsonFieldEditor);
 
         CustomizableFieldEditor stringFieldEditor = new CustomizableFieldEditor(Flake8Preferences.FLAKE8_ARGS,
                 "Arguments to pass to the flake8 command.",
                 parent);
         addField(stringFieldEditor);
+
+        addField(new ScopedPreferencesFieldEditor(parent, PyAnalysisScopedPreferences.ANALYSIS_SCOPE, this));
     }
 
     @Override
